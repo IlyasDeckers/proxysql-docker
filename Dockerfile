@@ -7,16 +7,16 @@ RUN rpmkeys --import https://www.percona.com/downloads/RPM-GPG-KEY-percona
 RUN yum install -y http://www.percona.com/downloads/percona-release/redhat/0.1-3/percona-release-0.1-3.noarch.rpm
 RUN yum install -y Percona-Server-client-56
 
-ADD proxysql.cnf /etc/proxysql.cnf
+ADD ./conf/proxysql.cnf /etc/proxysql.cnf
 
-COPY proxysql-entry.sh /entrypoint.sh
+COPY ./scripts/proxysql-entry.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
 COPY jq /usr/bin/jq
 RUN chmod a+x /usr/bin/jq
 
-COPY add_cluster_nodes.sh /usr/bin/add_cluster_nodes.sh
+COPY ./scripts/add_cluster_nodes.sh /usr/bin/add_cluster_nodes.sh
 RUN chmod a+x /usr/bin/add_cluster_nodes.sh
 
 VOLUME /var/lib/proxysql
