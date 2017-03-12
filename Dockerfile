@@ -1,5 +1,5 @@
 FROM centos:7
-MAINTAINER Percona Development <info@percona.com>
+MAINTAINER Ilyas Deckers <ilyas@phasehosting.io>
 
 RUN yum install -y https://github.com/sysown/proxysql/releases/download/v1.3.4/proxysql-1.3.4-1-centos7.x86_64.rpm
 
