@@ -15,6 +15,9 @@ RUN chmod a+x /usr/bin/watch
 COPY ./scripts/adduser /usr/bin/add_user
 RUN chmod a+x /usr/bin/add_user
 
+COPY ./scripts/backup /usr/bin/backup
+RUN chmod a+x /usr/bin/backup && mkdir /var/backup
+
 COPY ./scripts/proxysql-entry /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

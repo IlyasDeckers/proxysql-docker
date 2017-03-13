@@ -40,5 +40,5 @@ To add a new user and restrict access to a certain database execute the followin
 docker exec -it <container> bash add_user <database> <user> <password>
 ```
 
-### Backup database
-(Comming Soon)
+### Automatic backups
+The proxy creates backup automatically every 60 min and get retained for 30 days. It is advised to mount a volume to `/var/backup` for not losing backups when the container gets deleted.
