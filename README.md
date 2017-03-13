@@ -42,7 +42,6 @@ docker exec -it <container> bash add_user <database> <user> <password>
 ```
 
 ### Automatic backups
-<<<<<<< HEAD
 The proxy creates backup automatically every 60 min and get retained for 30 days. It is advised to mount a volume to `/var/backup` for not losing backups when the container gets deleted. Soon, S3 will be added as a storage backend for the backups.
 
 ### Environment variables
@@ -62,8 +61,3 @@ PROXY_ADMIN_PORT
 PROXY_ADMIN_USER
 PROXY_ADMIN_PASS
 ```
-=======
-The proxy creates backup automatically from a healthy node in your database cluster every 60 min and get retained for 30 days. It is advised to mount a volume to `/var/backup` for not losing backups when the container gets deleted.
-
-Later on backups can be configured trough variables. 
->>>>>>> 5ccd5748e1493d94e8aa348db6b03fa6f4e2bd9c
