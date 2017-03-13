@@ -10,3 +10,9 @@ if [ -z "$DISCOVERY_SERVICE" ]; then
 fi
 
 /usr/bin/proxysql --initial -f -c /etc/proxysql.cnf 
+
+while true
+do 
+    add_cluster_nodes.sh
+    sleep 15
+done
