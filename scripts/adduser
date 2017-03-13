@@ -1,0 +1,30 @@
+#!/bin/bash
+
+ADMIN_PORT=${ADMIN_PORT:-6032}
+ADMIN_USER=${ADMIN_USER:-IlyasD}
+ADMIN_PASS=${ADMIN_PASS:-a3WsW5DMd4d6}
+
+# Usage:
+# docker exec -it <container> bash add_user <database> <user> <password>
+
+mycnf_rootgen() {
+    printf "[client]\nuser = %s\npassword = %s\nconnect_timeout = 5" "root" "${MYSQL_ROOT_PASSWORD}"
+}
+
+mycnf_gen() {
+    printf "[client]\nuser = %s\npassword = %s\nport = %s\nhost = %s\nconnect_timeout = 5" "${ADMIN_USER}" "${ADMIN_PASS}" "${ADMIN_PORT}" "127.0.0.1"
+}
+
+SERVER=`mysql --defaults-file=<(mycnf_gen) --disable-column-names -e "SELECT srv_host FROM stats.stats_mysql_connection_pool WHERE status='ONLINE';" | sort`
+
+for i in $SERVER
+do
+    ADDUSER=`mysql --defaults-file=<(mycnf_rootgen) -h $i -e "GRANT ALL ON $1.* TO '$2'@'%' IDENTIFIED BY '$3';"`
+done
+
+if [ -z "$ADDUSER" ];
+then
+    echo 'User added successfully'
+    mysql --defaults-file=<(mycnf_gen) -e "INSERT INTO mysql_users (username, password, active, default_hostgroup, max_connections) VALUES ('$2', '$3', 1, 0, 200);"
+    mysql --defaults-file=<(mycnf_gen) -e "LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK; LOAD MYSQL USERS TO RUNTIME; SAVE MYSQL USERS TO DISK;"
+fi

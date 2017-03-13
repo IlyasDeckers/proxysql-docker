@@ -2,6 +2,12 @@
 This is a container image for ProxySQL. It is meant to run alongside a PerconaXtraDB cluster and etcd. (Image following soon)
 
 ## Usage
+To start ProxySQL you will need PerconaXtraDB and etcd up and running on docker swarm. This images creates a proxy service to distribute requests to a database cluster.
+
+There are some scripts that you can run to provision you databases without loggin in to them.
+
+### Start the service
+
 ```shell
 docker service create --name mysql_cluster_proxy \
   --network app-network \                               # 
@@ -9,17 +15,30 @@ docker service create --name mysql_cluster_proxy \
 	-p 3306 -p 6032 \                 
 	-e DISCOVERY_SERVICE=10.100.0.11:2379 \               # Etcd discovery service
 	-e CLUSTER_NAME=client_mysql \                        # PerconaXtraDB cluster name as registered in etcd
-	-e MYSQL_PROXY_USER=proxyuser \                       # ProxySQL username
-	-e MYSQL_PROXY_PASSWORD=s3cret \                      # ProxySQL password
+	-e MYSQL_PROXY_USER=proxyuser \                       # Superuser username
+	-e MYSQL_PROXY_PASSWORD=s3cret \                      # Superuser password
 	-e MYSQL_ROOT_PASSWORD=password \                     # Database cluster root password
 	phasehosting/mysql-proxy
 ```
-When the service is in running state, execute the following command to configure ProxySQL
+
+The service watches for changes in the database cluster and removes dead nodes from the proxy automatically.
+
+I strongly advise to set the followin variables to something uncommon, these credentials are for the superuser and it can connect to every database.
+
+```
+	-e MYSQL_PROXY_USER=proxyuser \                       # Superuser username
+	-e MYSQL_PROXY_PASSWORD=s3cret \                      # Superuser password
+
+```
+### Create database
+(Comming Soon)
+
+### Create a database user
+
+To add a new user and restrict access to a certain database execute the following command:
 ```shell
-docker exec -it <container name> bash add_cluster_nodes.sh
+docker exec -it <container> bash add_user <database> <user> <password>
 ```
 
-You can now connect to the database cluster with from any container that is in you app network (For example a Laravel app)
-```shell
-mysql -uproxyuser -ps3cret -h mysql_cluster_proxy
-```
+### Backup database
+(Comming Soon)

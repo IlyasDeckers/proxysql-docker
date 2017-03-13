@@ -6,26 +6,25 @@ RUN yum install -y https://github.com/sysown/proxysql/releases/download/v1.3.4/p
 RUN rpmkeys --import https://www.percona.com/downloads/RPM-GPG-KEY-percona
 RUN yum install -y http://www.percona.com/downloads/percona-release/redhat/0.1-3/percona-release-0.1-3.noarch.rpm
 RUN yum install -y Percona-Server-client-56
-RUN yum install -y cronie
 
 ADD ./conf/proxysql.cnf /etc/proxysql.cnf
 
-COPY ./scripts/proxysql-entry.sh /entrypoint.sh
+COPY ./scripts/watch /usr/bin/watch
+RUN chmod a+x /usr/bin/watch
+
+COPY ./scripts/adduser /usr/bin/add_user
+RUN chmod a+x /usr/bin/add_user
+
+COPY ./scripts/proxysql-entry /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
 COPY jq /usr/bin/jq
 RUN chmod a+x /usr/bin/jq
 
-COPY ./scripts/add_cluster_nodes.sh /usr/bin/add_cluster_nodes.sh
-RUN chmod a+x /usr/bin/add_cluster_nodes.sh
-
 VOLUME /var/lib/proxysql
 
 EXPOSE 3306 6032
-ONBUILD RUN yum update -y
-
-COPY ./conf/crontab /etc/crontab
-RUN add_cluster_nodes.sh
+ONBUILD RUN yum update -y 
 
 CMD [""]

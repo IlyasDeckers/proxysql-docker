@@ -1,0 +1,132 @@
+#!/bin/bash
+
+ADMIN_PORT=${ADMIN_PORT:-6032}
+ADMIN_USER=${ADMIN_USER:-IlyasD}
+ADMIN_PASS=${ADMIN_PASS:-a3WsW5DMd4d6}
+DISCOVERY_SLEEP=15
+LOCKFILE=/tmp/cluster.lock
+
+get_host_ip() {
+	ipaddr=$(hostname -i | awk ' { print $1 } ')
+}
+
+mycnf_gen() {
+    printf "[client]\nuser = %s\npassword = %s\nport = %s\nhost = %s\nconnect_timeout = 5" "${ADMIN_USER}" "${ADMIN_PASS}" "${ADMIN_PORT}" "127.0.0.1"
+}
+
+mycnf_rootgen() {
+    printf "[client]\nuser = %s\npassword = %s\nconnect_timeout = 5" "root" "${MYSQL_ROOT_PASSWORD}"
+}
+
+setup_monitoring() {
+    out "Setup monitor user in proxysql"
+	mysql --defaults-file=<(mycnf_gen) -e "UPDATE global_variables SET variable_value='monitor' WHERE variable_name='mysql-monitor_username';"
+	mysql --defaults-file=<(mycnf_gen) -e "UPDATE global_variables SET variable_value='monitor' WHERE variable_name='mysql-monitor_password';"
+	mysql --defaults-file=<(mycnf_gen) -e "LOAD MYSQL VARIABLES TO RUNTIME; SAVE MYSQL VARIABLES TO DISK;"
+}
+
+bootstrap_nodes() {
+	for SERVER in $(curl http://$DISCOVERY_SERVICE/v2/keys/galera/$CLUSTER_NAME/ | jq -r '.node.nodes[]?.key' | awk -F'/' '{print $(NF)}')
+	do
+		echo ${SERVER}
+
+		get_host_ip
+
+		mysql --defaults-file=<(mycnf_rootgen) -h ${SERVER} -e "GRANT ALL ON *.* TO '$MYSQL_PROXY_USER'@'%' IDENTIFIED BY '$MYSQL_PROXY_PASSWORD';"
+		mysql --defaults-file=<(mycnf_gen) -e "INSERT INTO mysql_servers (hostgroup_id, hostname, port, max_replication_lag) VALUES (0, '$SERVER', 3306, 20);"
+	done
+
+	mysql --defaults-file=<(mycnf_gen) -e "INSERT INTO mysql_users (username, password, active, default_hostgroup, max_connections) VALUES ('$MYSQL_PROXY_USER', '$MYSQL_PROXY_PASSWORD', 1, 0, 200);"
+	mysql --defaults-file=<(mycnf_gen) -e "LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK; LOAD MYSQL USERS TO RUNTIME; SAVE MYSQL USERS TO DISK;"
+
+	setup_monitoring;
+}
+
+
+update_serverlist() {
+	IPS=`mysql --defaults-file=<(mycnf_gen) -B --disable-column-names -e 'SELECT hostname from mysql_servers' | sort`
+	
+	NEWIPS=`curl -s http://$DISCOVERY_SERVICE/v2/keys/galera/$CLUSTER_NAME/ | jq -r '.node.nodes[]?.key' | awk -F'/' '{print $(NF)}' | sort`
+	
+	SDIFF=`diff --old-line-format='-%L' --new-line-format='+%L' --unchanged-line-format='=%L' <(for IP in $IPS; do echo $IP; done) <(for IP in $NEWIPS; do echo $IP; done)`
+	
+	CHANGES=false
+
+	get_host_ip
+
+	for SERVER in $SDIFF
+	do
+		if [[ $SERVER == -* ]]
+		then
+			echo ''
+			echo '*****************************'
+			echo "REMOVE ${SERVER:1}"
+			echo '*****************************'
+			echo ''
+			mysql --defaults-file=<(mycnf_gen) -e "DELETE FROM mysql_servers where hostname='${SERVER:1}';"
+			CHANGES=true
+		elif [[ $SERVER == +* ]]
+		then 
+			echo ''
+			echo '*****************************'
+			echo "ADD ${SERVER:1}"
+			echo '*****************************'
+			echo ''
+			mysql --defaults-file=<(mycnf_gen) -e "INSERT INTO mysql_servers (hostgroup_id, hostname, port, max_replication_lag) VALUES (0, '${SERVER:1}', 3306, 20);"
+			mysql --defaults-file=<(mycnf_rootgen) -h ${SERVER:1} -e "GRANT ALL ON *.* TO '$MYSQL_PROXY_USER'@'%' IDENTIFIED BY '$MYSQL_PROXY_PASSWORD';"	
+
+			CHANGES=true
+		fi
+	done
+
+	if [[ ${CHANGES} == true ]]
+	then
+		echo "Server list updated"
+		mysql --defaults-file=<(mycnf_gen) -e "LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;"
+	else
+		echo "Nothing to do"
+	fi
+}
+
+remove_etcd_keys() {
+	echo ''
+	echo '*****************************'
+	echo "Looking for death or removed containers"
+	echo '*****************************'
+	echo ''
+
+	OFFLINE_HARD=`mysql --defaults-file=<(mycnf_gen) --disable-column-names -e "SELECT srv_host FROM stats.stats_mysql_connection_pool WHERE status='OFFLINE_HARD';" | sort`
+	SHUNNED=`mysql --defaults-file=<(mycnf_gen) --disable-column-names -e "SELECT srv_host FROM stats.stats_mysql_connection_pool WHERE status='SHUNNED';" | sort`
+
+	OFFLINE="$OFFLINE_HARD $SHUNNED"
+
+	echo $OFFLINE
+
+	for i in $OFFLINE
+	do
+		curl -sS http://$DISCOVERY_SERVICE/v2/keys/galera/$CLUSTER_NAME/$i?recursive=true -XDELETE
+		echo "Deleted $i from etcd"
+	done
+
+}
+
+if ( set -o noclobber; echo "$$" > "$LOCKFILE") 2> /dev/null;
+then
+	trap 'rm -f "$LOCKFILE"; exit $?' INT TERM EXIT
+
+		bootstrap_nodes;
+
+	# Main loop
+	while true; do
+		remove_etcd_keys;
+		echo "Updating the serverlist"
+		update_serverlist
+		sleep ${DISCOVERY_SLEEP}
+	done
+
+    rm -f "$LOCKFILE"
+    trap - INT TERM EXIT
+else
+    out "Already running"
+    exit 1
+fi

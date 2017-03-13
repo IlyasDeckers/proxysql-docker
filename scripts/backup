@@ -1,0 +1,10 @@
+#!/bin/bash
+
+mycnf_rootgen() {
+    printf "[client]\nuser = %s\npassword = %s\nconnect_timeout = 5" "root" "${MYSQL_ROOT_PASSWORD}"
+}
+
+if [ "$1" == "backup"];
+then
+	mysql --defaults-file=<(mycnf_rootgen) -h $i -e "GRANT ALL ON $1.* TO '$2'@'%' IDENTIFIED BY '$3';"
+fi

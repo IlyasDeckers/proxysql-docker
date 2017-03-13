@@ -1,4 +1,5 @@
 #!/bin/bash
+
 if [ -z "$CLUSTER_NAME" ]; then
         echo >&2 'Error:  You need to specify CLUSTER_NAME'
         exit 1
@@ -9,10 +10,8 @@ if [ -z "$DISCOVERY_SERVICE" ]; then
         exit 1
 fi
 
-/usr/bin/proxysql --initial -f -c /etc/proxysql.cnf 
+/usr/bin/proxysql --initial -f -c /etc/proxysql.cnf &
 
-while true
-do 
-    add_cluster_nodes.sh
-    sleep 15
-done
+sleep 10 # allow proxysql to start gracefully
+echo 'Adding nodes'
+exec /usr/bin/watch
