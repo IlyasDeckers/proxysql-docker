@@ -35,10 +35,12 @@ I strongly advise to set the followin variables to something uncommon, these cre
 
 ### Create a database user
 
-To add a new user and restrict access to a certain database execute the following command:
+To add a new user and restrict access to a database execute the following command:
 ```shell
 docker exec -it <container> bash add_user <database> <user> <password>
 ```
 
 ### Automatic backups
 The proxy creates backup automatically every 60 min and get retained for 30 days. It is advised to mount a volume to `/var/backup` for not losing backups when the container gets deleted.
+
+Later on backups can be configured trough variables. 
