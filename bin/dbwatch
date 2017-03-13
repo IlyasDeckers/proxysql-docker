@@ -1,9 +1,7 @@
 #!/bin/bash
 
-ADMIN_PORT=${ADMIN_PORT:-6032}
-ADMIN_USER=${ADMIN_USER:-IlyasD}
-ADMIN_PASS=${ADMIN_PASS:-a3WsW5DMd4d6}
-DISCOVERY_SLEEP=15
+. /etc/.env
+
 LOCKFILE=/tmp/cluster.lock
 
 get_host_ip() {
@@ -116,7 +114,6 @@ then
 
 		bootstrap_nodes;
 
-	# Main loop
 	while true; do
 		remove_etcd_keys;
 		echo "Updating the serverlist"

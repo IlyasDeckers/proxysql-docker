@@ -1,8 +1,6 @@
 #!/bin/bash
 
-ADMIN_PORT=${ADMIN_PORT:-6032}
-ADMIN_USER=${ADMIN_USER:-IlyasD}
-ADMIN_PASS=${ADMIN_PASS:-a3WsW5DMd4d6}
+. /etc/.env
 
 # Usage:
 # docker exec -it <container> bash add_user <database> <user> <password>
