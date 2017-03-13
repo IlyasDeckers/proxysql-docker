@@ -1,17 +1,7 @@
 #!/bin/bash
 
 . /etc/.env
-
-# Usage:
-# docker exec -it <container> bash add_user <database> <user> <password>
-
-mycnf_rootgen() {
-    printf "[client]\nuser = %s\npassword = %s\nconnect_timeout = 5" "root" "${MYSQL_ROOT_PASSWORD}"
-}
-
-mycnf_gen() {
-    printf "[client]\nuser = %s\npassword = %s\nport = %s\nhost = %s\nconnect_timeout = 5" "${ADMIN_USER}" "${ADMIN_PASS}" "${ADMIN_PORT}" "127.0.0.1"
-}
+. /opt/proxysql/functions
 
 SERVER=`mysql --defaults-file=<(mycnf_gen) --disable-column-names -e "SELECT srv_host FROM stats.stats_mysql_connection_pool WHERE status='ONLINE';" | sort`
 

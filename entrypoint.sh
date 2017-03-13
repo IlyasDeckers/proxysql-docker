@@ -1,5 +1,7 @@
 #!/bin/bash
 
+. /etc/.env
+
 if [ -z "$CLUSTER_NAME" ]; then
         echo >&2 'Error:  You need to specify CLUSTER_NAME'
         exit 1
@@ -10,9 +12,9 @@ if [ -z "$DISCOVERY_SERVICE" ]; then
         exit 1
 fi
 
-sed -e "s;%ADMIN_USER%;${ADMIN_USER:-admin};g" \
--e "s;%ADMIN_PASS%;${ADMIN_PASS:-admin};g" \
--e "s;%ADMIN_PORT%;${ADMIN_PORT:-6032};g" \
+sed -e "s;%ADMIN_USER%;${ADMIN_USER};g" \
+-e "s;%ADMIN_PASS%;${ADMIN_PASS};g" \
+-e "s;%ADMIN_PORT%;${ADMIN_PORT};g" \
 /etc/proxysql.tmpl > /etc/proxysql.cnf
 
 /usr/bin/proxysql --initial -f -c /etc/proxysql.cnf &

@@ -1,0 +1,42 @@
+#!/bin/bash
+
+update_serverlist() {
+	IPS=`mysql --defaults-file=<(mycnf_gen) -B --disable-column-names -e 'SELECT hostname from mysql_servers' | sort`
+	
+	NEWIPS=`curl -s http://$DISCOVERY_SERVICE/v2/keys/galera/$CLUSTER_NAME/ | jq -r '.node.nodes[]?.key' | awk -F'/' '{print $(NF)}' | sort`
+	
+	SDIFF=`diff --old-line-format='-%L' --new-line-format='+%L' --unchanged-line-format='=%L' <(for IP in $IPS; do echo $IP; done) <(for IP in $NEWIPS; do echo $IP; done)`
+	
+	CHANGES=false
+
+	get_host_ip
+
+	for SERVER in $SDIFF
+	do
+		if [[ $SERVER == -* ]]
+		then
+			echo ''
+			echo "REMOVE ${SERVER:1}"
+			echo ''
+			mysql --defaults-file=<(mycnf_gen) -e "DELETE FROM mysql_servers where hostname='${SERVER:1}';"
+			CHANGES=true
+		elif [[ $SERVER == +* ]]
+		then 
+			echo ''
+			echo "ADD ${SERVER:1}"
+			echo ''
+			mysql --defaults-file=<(mycnf_gen) -e "INSERT INTO mysql_servers (hostgroup_id, hostname, port, max_replication_lag) VALUES (0, '${SERVER:1}', 3306, 20);"
+			mysql --defaults-file=<(mycnf_rootgen) -h ${SERVER:1} -e "GRANT ALL ON *.* TO '$MYSQL_PROXY_USER'@'%' IDENTIFIED BY '$MYSQL_PROXY_PASSWORD';"	
+
+			CHANGES=true
+		fi
+	done
+
+	if [[ ${CHANGES} == true ]]
+	then
+		echo "Server list updated"
+		mysql --defaults-file=<(mycnf_gen) -e "LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;"
+	else
+		echo "Nothing to do"
+	fi
+}

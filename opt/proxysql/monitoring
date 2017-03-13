@@ -1,0 +1,8 @@
+#!/bin/bash
+
+setup_monitoring() {
+    out "Setup monitor user in proxysql"
+	mysql --defaults-file=<(mycnf_gen) -e "UPDATE global_variables SET variable_value='monitor' WHERE variable_name='mysql-monitor_username';"
+	mysql --defaults-file=<(mycnf_gen) -e "UPDATE global_variables SET variable_value='monitor' WHERE variable_name='mysql-monitor_password';"
+	mysql --defaults-file=<(mycnf_gen) -e "LOAD MYSQL VARIABLES TO RUNTIME; SAVE MYSQL VARIABLES TO DISK;"
+}

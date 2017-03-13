@@ -1,0 +1,55 @@
+#!/bin/bash
+
+. /opt/proxysql/mycnf
+. /opt/proxysql/update_serverlist
+. /opt/proxysql/monitoring
+. /opt/proxysql/cluster_health
+
+create_backup() {
+    # Find and remove backups for 30 days
+    find /var/backup -mtime +30 -type f -delete
+
+    mysqldump --defaults-file=<(mysqldumpcnf_rootgen) --all-databases --single-transaction --set-gtid-purged=OFF --triggers --routines --events -vvvv > /var/backup/full_database_backup"$(date +'%Y-%m-%d-%H:%M:%S')".sql
+}
+
+get_host_ip() {
+	ipaddr=$(hostname -i | awk ' { print $1 } ')
+}
+
+bootstrap_nodes() {
+	for SERVER in $(curl -sS http://$DISCOVERY_SERVICE/v2/keys/galera/$CLUSTER_NAME/ | jq -r '.node.nodes[]?.key' | awk -F'/' '{print $(NF)}')
+	do
+		echo ${SERVER}
+
+		get_host_ip
+
+		mysql --defaults-file=<(mycnf_rootgen) -h ${SERVER} -e "GRANT ALL ON *.* TO '$MYSQL_PROXY_USER'@'%' IDENTIFIED BY '$MYSQL_PROXY_PASSWORD';"
+		mysql --defaults-file=<(mycnf_gen) -e "INSERT INTO mysql_servers (hostgroup_id, hostname, port, max_replication_lag) VALUES (0, '$SERVER', 3306, 20);"
+	done
+
+	mysql --defaults-file=<(mycnf_gen) -e "INSERT INTO mysql_users (username, password, active, default_hostgroup, max_connections) VALUES ('$MYSQL_PROXY_USER', '$MYSQL_PROXY_PASSWORD', 1, 0, 200);"
+	mysql --defaults-file=<(mycnf_gen) -e "LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK; LOAD MYSQL USERS TO RUNTIME; SAVE MYSQL USERS TO DISK;"
+
+	setup_monitoring;
+}
+
+remove_etcd_keys() {
+	echo ''
+	echo "Looking for death or removed containers"
+	echo ''
+
+	OFFLINE_HARD=`mysql --defaults-file=<(mycnf_gen) --disable-column-names -e "SELECT srv_host FROM stats.stats_mysql_connection_pool WHERE status='OFFLINE_HARD';" | sort`
+	SHUNNED=`mysql --defaults-file=<(mycnf_gen) --disable-column-names -e "SELECT srv_host FROM stats.stats_mysql_connection_pool WHERE status='SHUNNED';" | sort`
+
+	OFFLINE="$OFFLINE_HARD $SHUNNED"
+
+	echo $OFFLINE
+
+	for i in $OFFLINE
+	do
+		curl -sS http://$DISCOVERY_SERVICE/v2/keys/galera/$CLUSTER_NAME/$i?recursive=true -XDELETE
+		mysql --defaults-file=<(mycnf_gen) -e "DELETE FROM mysql_servers where hostname='$i';"
+		echo "Deleted $i from etcd"
+	done
+
+}
