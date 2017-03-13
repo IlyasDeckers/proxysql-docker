@@ -61,3 +61,6 @@ PROXY_ADMIN_PORT
 PROXY_ADMIN_USER
 PROXY_ADMIN_PASS
 ```
+
+## Custom scripts
+You can put custom scripts in the bin folder, they will automatically be copied to `/user/bin` when building the image. This can make common administrative tasks easy and fast.
