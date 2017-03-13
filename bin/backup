@@ -1,0 +1,46 @@
+#!/bin/bash
+
+ADMIN_PORT=${ADMIN_PORT:-6032}
+ADMIN_USER=${ADMIN_USER:-IlyasD}
+ADMIN_PASS=${ADMIN_PASS:-a3WsW5DMd4d6}
+LOCKFILE=/tmp/backup.lock
+
+mycnf_gen() {
+    printf "[client]\nuser = %s\npassword = %s\nport = %s\nhost = %s\nconnect_timeout = 5" "${ADMIN_USER}" "${ADMIN_PASS}" "${ADMIN_PORT}" "127.0.0.1"
+}
+
+get_healthy_node() {
+        SERVER=`mysql --defaults-file=<(mycnf_gen) --disable-column-names -e "SELECT srv_host FROM stats.stats_mysql_connection_pool WHERE status='ONLINE';"`
+        set -- $SERVER
+        MYSQL_HOST=$1
+}
+
+mysqldumpcnf_rootgen() {
+        get_healthy_node
+    printf "[mysqldump]\nuser = %s\npassword = %s\nhost = %s" "root" "${MYSQL_ROOT_PASSWORD}" "${MYSQL_HOST}"
+}
+
+create_backup() {
+        # Find and remove backups for 30 days
+        find /var/backup -mtime +30 -type f -delete
+
+        mysqldump --defaults-file=<(mysqldumpcnf_rootgen) --all-databases --single-transaction --set-gtid-purged=OFF --triggers --routines --events -vvvv > /var/backup/full_database_backup"$(date +'%Y-%m-%d-%H:%M:%S')".sql
+}
+
+if ( set -o noclobber; echo "$$" > "$LOCKFILE") 2> /dev/null;
+then
+        trap 'rm -f "$LOCKFILE"; exit $?' INT TERM EXIT
+
+        # Main loop
+        while true; do
+                create_backup;
+                echo "Backup successfull"
+                sleep 60m
+        done
+
+    rm -f "$LOCKFILE"
+    trap - INT TERM EXIT
+else
+    out "Already running"
+    exit 1
+fi

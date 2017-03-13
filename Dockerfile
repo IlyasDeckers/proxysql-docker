@@ -9,14 +9,8 @@ RUN yum install -y Percona-Server-client-56
 
 ADD ./conf/proxysql.cnf /etc/proxysql.cnf
 
-COPY ./scripts/watch /usr/bin/watch
-RUN chmod a+x /usr/bin/watch
-
-COPY ./scripts/adduser /usr/bin/add_user
-RUN chmod a+x /usr/bin/add_user
-
-COPY ./scripts/backup /usr/bin/backup
-RUN chmod a+x /usr/bin/backup && mkdir /var/backup
+COPY ./bin/* /usr/bin/
+RUN chmod a+x /usr/bin/*
 
 COPY ./scripts/proxysql-entry /entrypoint.sh
 RUN chmod +x /entrypoint.sh
