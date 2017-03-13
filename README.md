@@ -12,6 +12,7 @@ There are some scripts that you can run to provision you databases without loggi
 docker service create --name mysql_cluster_proxy \
   --network app-network \                               # 
 	--network mysql-client \                              # Must be the same network as the database cluster
+	--mount type=volume,source=proxysql,target=/var/backup
 	-p 3306 -p 6032 \                 
 	-e DISCOVERY_SERVICE=10.100.0.11:2379 \               # Etcd discovery service
 	-e CLUSTER_NAME=client_mysql \                        # PerconaXtraDB cluster name as registered in etcd
@@ -41,6 +42,6 @@ docker exec -it <container> bash add_user <database> <user> <password>
 ```
 
 ### Automatic backups
-The proxy creates backup automatically every 60 min and get retained for 30 days. It is advised to mount a volume to `/var/backup` for not losing backups when the container gets deleted.
+The proxy creates backup automatically from a healthy node in your database cluster every 60 min and get retained for 30 days. It is advised to mount a volume to `/var/backup` for not losing backups when the container gets deleted.
 
 Later on backups can be configured trough variables. 
