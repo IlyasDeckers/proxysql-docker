@@ -52,3 +52,27 @@ remove_etcd_keys() {
 	done
 
 }
+
+new() {
+    # Register new node with etcd
+    ipaddr=$(hostname -i | awk ' { print $1 } ')
+    hostname=$(hostname)
+    
+    curl http://$DISCOVERY_SERVICE/v2/keys/proxysql/$CLUSTER_NAME/$ipaddr/ipaddr -XPUT -d value="$ipaddr" -d ttl=30 2>>$ERR_FILE >>$ERR_FILE
+    curl http://$DISCOVERY_SERVICE/v2/keys/proxysql/$CLUSTER_NAME/$ipaddr/hostname -XPUT -d value="$hostname" -d ttl=30 2>>$ERR_FILE >>$ERR_FILE
+    curl http://$DISCOVERY_SERVICE/v2/keys/proxysql/$CLUSTER_NAME/$ipaddr -XPUT -d ttl=30 -d dir=true -d prevExist=true 2>>$ERR_FILE >>$ERR_FILE}
+}
+
+scale() {
+    ipaddr=$(hostname -i | awk ' { print $1 } ')
+    hostname=$(hostname)
+    
+    # Look for running nodes and get configuration
+    for SERVER in $(curl -sS http://$DISCOVERY_SERVICE/v2/keys/proxysql/$CLUSTER_NAME/ | jq -r '.node.nodes[]?.key' | awk -F'/' '{print $(NF)}')
+    then
+    	# For every runnin proxysql node
+	USERS=`mysql --defaults-file=<(mycnf_gen) -h $ipaddr --disable-column-names -e "SELECT * FROM mysql_users;"´
+	# Get proxy users and copy to new node
+	mysql --defaults-file=<(mycnf_gen) -h $ipaddr --disable-column-names -e "UPDATE something"
+    fi 
+}
