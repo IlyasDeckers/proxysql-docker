@@ -10,6 +10,10 @@ mycnf_gen() {
     printf "[client]\nuser = %s\npassword = %s\nport = %s\nhost = %s\nconnect_timeout = 5" "${ADMIN_USER}" "${ADMIN_PASS}" "${ADMIN_PORT}" "127.0.0.1"
 }
 
+mycnfremote_gen() {
+    printf "[client]\nuser = %s\npassword = %s\nport = %s\nconnect_timeout = 5" "${ADMIN_USER}" "${ADMIN_PASS}" "${ADMIN_PORT}"
+}
+
 mycnf_rootgen() {
     printf "[client]\nuser = %s\npassword = %s\nconnect_timeout = 5" "root" "${MYSQL_ROOT_PASSWORD}"
 }
