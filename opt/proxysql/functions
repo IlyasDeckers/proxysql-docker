@@ -6,6 +6,7 @@
 . /opt/proxysql/cluster_health
 
 create_backup() {
+    mkdir -p foo/bar/baz
     find /var/backup -mtime +30 -type f -delete
     mysqldump --defaults-file=<(mysqldumpcnf_rootgen) --all-databases --single-transaction --set-gtid-purged=OFF --triggers --routines --events -vvvv > /var/backup/full_database_backup"$(date +'%Y-%m-%d-%H:%M:%S')".sql
 }
