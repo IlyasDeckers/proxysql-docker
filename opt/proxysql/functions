@@ -53,7 +53,7 @@ remove_etcd_keys() {
 
 }
 
-new() {
+register() {
     # Register new node with etcd
     ipaddr=$(hostname -i | awk ' { print $1 } ')
     hostname=$(hostname)
@@ -71,8 +71,9 @@ scale() {
     for SERVER in $(curl -sS http://$DISCOVERY_SERVICE/v2/keys/proxysql/$CLUSTER_NAME/ | jq -r '.node.nodes[]?.key' | awk -F'/' '{print $(NF)}')
     then
     	# For every runnin proxysql node
-	USERS=`mysql --defaults-file=<(mycnf_gen) -h $ipaddr --disable-column-names -e "SELECT * FROM mysql_users;"´
+	USERS=`mysql --defaults-file=<(mycnfremote_gen) -h $ipaddr --disable-column-names -e "SELECT * FROM mysql_users;"´
 	# Get proxy users and copy to new node
-	mysql --defaults-file=<(mycnf_gen) -h $ipaddr --disable-column-names -e "UPDATE something"
     fi 
+    
+    mysqldump --defaults-file=<(mycnf_gen) -h $ipaddr main mysql_users | mysql --defaults-file=<(mycnf_gen) main
 }
