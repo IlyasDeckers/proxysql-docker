@@ -16,6 +16,7 @@ COPY ./bin/* /usr/bin/
 RUN chmod a+x /usr/bin/*
 
 COPY .env /etc/.env
+RUN mkdir /var/backup
 
 COPY ./entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

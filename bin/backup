@@ -1,5 +1,5 @@
 #!/bin/bash
-LOCKFILE=/tmp/backup.lock
+LOCKFILE=/var/backup/backup.lock
 
 . /etc/.env
 . /opt/proxysql/functions
@@ -8,7 +8,6 @@ if ( set -o noclobber; echo "$$" > "$LOCKFILE") 2> /dev/null;
 then
     trap 'rm -f "$LOCKFILE"; exit $?' INT TERM EXIT
 
-    # Main loop
     while true; do
         create_backup;
         echo "Backup successfull"

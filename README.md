@@ -10,15 +10,15 @@ There are some scripts that you can run to provision you databases without loggi
 
 ```shell
 docker service create --name mysql_cluster_proxy \
-  --network app-network \                               # 
-	--network mysql-client \                              # Must be the same network as the database cluster
-	--mount type=volume,source=proxysql,target=/var/backup
-	-p 3306 -p 6032 \                 
-	-e DISCOVERY_SERVICE=10.100.0.11:2379 \               # Etcd discovery service
-	-e CLUSTER_NAME=client_mysql \                        # PerconaXtraDB cluster name as registered in etcd
-	-e MYSQL_PROXY_USER=proxyuser \                       # Superuser username
-	-e MYSQL_PROXY_PASSWORD=s3cret \                      # Superuser password
-	-e MYSQL_ROOT_PASSWORD=password \                     # Database cluster root password
+  --network app-network \
+	--network mysql-client \
+	--mount type=volume,source=proxysql,target=/var/backup \
+	-p 3306 -p 6032 \
+	-e DISCOVERY_SERVICE=10.100.0.11:2379 \
+	-e CLUSTER_NAME=client_mysql \
+	-e MYSQL_PROXY_USER=proxyuser \
+	-e MYSQL_PROXY_PASSWORD=s3cret \
+	-e MYSQL_ROOT_PASSWORD=password \ 
 	phasehosting/mysql-proxy
 ```
 
@@ -64,3 +64,6 @@ PROXY_ADMIN_PASS
 
 ## Custom scripts
 You can put custom scripts in the bin folder, they will automatically be copied to `/user/bin` when building the image. This can make common administrative tasks easy and fast.
+
+docker service create --name mysql_cluster_proxy --network mysql-client -p 3306 -p 6032 --mount type=volume,source=proxysql,target=/var/backup -e DISCOVERY_SERVICE=10.100.0.11:2379 -e CLUSTER_NAME=mysql_client -e MYSQL_PROXY_USER=ilyas -e MYSQL_PROXY_PASSWORD=ddsqsdsdzedfsqsffbq -e MYSQL_ROOT_PASSWORD=x3tjVsnfWs8K phasehosting/mysql-proxy
+
