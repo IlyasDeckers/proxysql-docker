@@ -51,12 +51,6 @@ MYSQL_PROXY_SUPERUSER
 MYSQL_PROXY_PASSWORD
 DISCOVERY_SERVICE
 CLUSTER_NAME
-
-# optional
-S3KEY
-S3SECRET
-S3BUCKET
-
 PROXY_ADMIN_PORT
 PROXY_ADMIN_USER
 PROXY_ADMIN_PASS
@@ -65,5 +59,11 @@ PROXY_ADMIN_PASS
 ## Custom scripts
 You can put custom scripts in the bin folder, they will automatically be copied to `/user/bin` when building the image. This can make common administrative tasks easy and fast.
 
-docker service create --name mysql_cluster_proxy --network mysql-client -p 3306 -p 6032 --mount type=volume,source=proxysql,target=/var/backup -e DISCOVERY_SERVICE=10.100.0.11:2379 -e CLUSTER_NAME=mysql_client -e MYSQL_PROXY_USER=ilyas -e MYSQL_PROXY_PASSWORD=ddsqsdsdzedfsqsffbq -e MYSQL_ROOT_PASSWORD=x3tjVsnfWs8K phasehosting/mysql-proxy
+# Todo
+
+- Backups to S3
+- Scaling/HA ProxySQL
+- Improve monitoring
+- Improve Etcd discovery
+- Read/write split
 
