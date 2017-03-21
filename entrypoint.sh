@@ -21,8 +21,4 @@ sed -e "s;%ADMIN_USER%;${ADMIN_USER};g" \
 
 sleep 10 # allow proxysql to start gracefully
 echo 'Adding nodes'
-exec /usr/bin/dbwatch &
-
-sleep 15m
-echo "Starting automatic backup"
-exec /usr/bin/backup &
+exec /usr/bin/dbwatch
